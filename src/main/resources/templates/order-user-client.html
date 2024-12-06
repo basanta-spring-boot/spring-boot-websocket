@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User - Order Tracking</title>
+    <!-- Add Bootstrap CSS and Font Awesome for icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .update {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .update i {
+            margin-right: 10px;
+            font-size: 24px;
+        }
+        .status-label {
+            font-weight: bold;
+        }
+        .status-buttons button {
+            margin-right: 10px;
+        }
+        .status-buttons button:hover {
+            opacity: 0.9;
+        }
+        .progress-bar-container {
+            margin-top: 10px;
+        }
+        .icon {
+            margin-right: 10px;
+        }
+        .prepared {
+            color: #ff9900;
+        }
+        .ready {
+            color: #f0ad4e;
+        }
+        .delivered {
+            color: #5cb85c;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="text-center">User - Order Tracking</h1>
+    <div id="orderUpdates"></div>
+</div>
+
+<script>
+    const socket = new SockJS('http://localhost:8080/ws'); // WebSocket connection
+    const stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, function () {
+        console.log("Connected to WebSocket");
+
+        // Subscribe to the order topic
+        stompClient.subscribe('/topic/order', function (message) {
+            const orderUpdate = JSON.parse(message.body);
+
+            // Display the order update in the UI with an icon based on the status
+            const updatesDiv = document.getElementById('orderUpdates');
+            const updateElement = document.createElement('div');
+            updateElement.className = 'update';
+
+            // Create an icon based on the status
+            let icon = '';
+            let progressBarClass = '';
+            let progressValue = 0;
+
+            if (orderUpdate.status === 'Prepared') {
+                icon = '<i class="fas fa-utensils icon prepared"></i>';
+                progressBarClass = 'progress-bar-striped bg-warning';
+                progressValue = 33;  // Prepared: 33%
+            } else if (orderUpdate.status === 'Ready') {
+                icon = '<i class="fas fa-check-circle icon ready"></i>';
+                progressBarClass = 'progress-bar-striped bg-info';
+                progressValue = 66;  // Ready: 66%
+            } else if (orderUpdate.status === 'Delivered') {
+                icon = '<i class="fas fa-truck icon delivered"></i>';
+                progressBarClass = 'progress-bar-striped bg-success';
+                progressValue = 100;  // Delivered: 100%
+            }
+
+            updateElement.innerHTML = `
+                <div class="d-flex align-items-center">
+                    ${icon}
+                    <div>
+                        <p class="status-label">${orderUpdate.status}</p>
+                        <p>Order ID: ${orderUpdate.orderId}</p>
+                    </div>
+                </div>
+                <div class="progress progress-bar-container">
+                    <div class="progress-bar ${progressBarClass}" role="progressbar" style="width: ${progressValue}%" aria-valuenow="${progressValue}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            `;
+
+            updatesDiv.appendChild(updateElement);
+        });
+    });
+</script>
+
+<!-- Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
